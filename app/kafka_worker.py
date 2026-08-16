@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 from confluent_kafka import Consumer, Producer
-from .domain import REQUEST_TYPE, build_result, choose_status, fingerprint, validate_request
+from .domain import REQUEST_TYPE, build_result, choose_status, decode_message_key, fingerprint, validate_request
 
 log = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class KafkaWorker(threading.Thread):
                 if msg is None: continue
                 if msg.error(): log.error("Kafka error: %s",msg.error()); continue
                 try:
-                    event=json.loads(msg.value()); key=msg.key().decode() if msg.key() else ""
+                    event=json.loads(msg.value()); key=decode_message_key(msg.key())
                     if event.get("eventType") != REQUEST_TYPE or event.get("producer") != "eapo-cab":
                         self.consumer.commit(msg); continue
                     validate_request(event,key); fp=fingerprint(event); old=self.repository.find_processed(event["requestId"])

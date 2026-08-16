@@ -18,6 +18,18 @@ class Settings:
     retryable: bool = False
 
 
+def decode_message_key(raw: bytes | None) -> str:
+    """Decode both plain Kafka string keys and JSON keys produced by REST Proxy."""
+    if not raw:
+        return ""
+    text = raw.decode("utf-8")
+    try:
+        decoded = json.loads(text)
+        return decoded if isinstance(decoded, str) else text
+    except json.JSONDecodeError:
+        return text
+
+
 def fingerprint(event: dict) -> str:
     body = {"applicationId": event.get("applicationId"), "currentStatus": event.get("currentStatus")}
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
