@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 from confluent_kafka import Consumer, Producer
-from .domain import REQUEST_TYPE, build_result, choose_status, decode_message_key, fingerprint, validate_request
+from .domain import REQUEST_TYPE, build_result, choose_status, decode_message_key, encode_message_key, fingerprint, validate_request
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class KafkaWorker(threading.Thread):
     def stop(self): self.stop_event.set()
 
     def publish(self, key: str, value: dict):
-        self.producer.produce(self.topic,key=key.encode(),value=json.dumps(value,ensure_ascii=False).encode())
+        self.producer.produce(self.topic,key=encode_message_key(key),value=json.dumps(value,ensure_ascii=False).encode())
         self.producer.flush(10)
 
     def run(self):

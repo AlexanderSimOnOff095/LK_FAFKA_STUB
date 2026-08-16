@@ -1,5 +1,5 @@
 import unittest
-from app.domain import Settings, build_result, choose_status, decode_message_key, fingerprint, validate_request
+from app.domain import Settings, build_result, choose_status, decode_message_key, encode_message_key, fingerprint, validate_request
 
 
 def request(**overrides):
@@ -18,6 +18,7 @@ class DomainTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"APPLICATION_KEY_MISMATCH"): validate_request(request(),"a2")
     def test_rest_proxy_json_key(self): self.assertEqual("a1",decode_message_key(b'"a1"'))
     def test_plain_kafka_key(self): self.assertEqual("a1",decode_message_key(b'a1'))
+    def test_rest_proxy_key_round_trip(self): self.assertEqual("a1",decode_message_key(encode_message_key("a1")))
     def test_fingerprint_is_payload_based(self): self.assertEqual(fingerprint(request(eventId="x")),fingerprint(request(eventId="y")))
     def test_success_result(self):
         result=build_result(request(),"PROCESSING"); self.assertEqual("SUCCESS",result["result"]); self.assertEqual("e1",result["causationId"])

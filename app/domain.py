@@ -30,6 +30,11 @@ def decode_message_key(raw: bytes | None) -> str:
         return text
 
 
+def encode_message_key(value: str) -> bytes:
+    """Encode a string key for the JSON serializer used by Kafka REST Proxy."""
+    return json.dumps(value, ensure_ascii=False).encode("utf-8")
+
+
 def fingerprint(event: dict) -> str:
     body = {"applicationId": event.get("applicationId"), "currentStatus": event.get("currentStatus")}
     return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
