@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "EAPO-Cab - Application status E2E",
+    "description": "Полный тест одной заявки: NEW -> PROCESSING -> COMPLETED через applications.status.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "consumerGroup", "value": "postman-eapo-cab-status-e2e-v1"}
+  ],
+  "item": [
+    {
+      "name": "01 - Initialize random application",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const suffix = Date.now() + '-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0');",
+              "pm.environment.set('applicationId', 'APP-' + suffix);",
+              "pm.environment.set('consumerInstance', 'postman-e2e-' + suffix);",
+              "pm.environment.set('currentStatus', 'NEW');",
+              "console.log('E2E applicationId:', pm.environment.get('applicationId'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {"exec": ["pm.test('Kafka topic exists', function () { pm.expect(pm.response.json()).to.include(pm.environment.get('topic')); });"]}
+        }
+      ],
+      "request": {"method": "GET", "url": "{{kafkaRestUrl}}/topics"}
+    },
+    {
+      "name": "02 - Create result consumer",
+      "event": [{"listen": "test", "script": {"exec": ["pm.test('Consumer created', function () { pm.response.to.have.status(200); });"]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/vnd.kafka.v2+json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"name\": \"{{consumerInstance}}\",\n  \"format\": \"json\",\n  \"auto.offset.reset\": \"latest\",\n  \"auto.commit.enable\": \"true\"\n}"},
+        "url": "{{kafkaRestUrl}}/consumers/{{consumerGroup}}"
+      }
+    },
+    {
+      "name": "03 - Subscribe result consumer",
+      "event": [{"listen": "test", "script": {"exec": ["pm.test('Consumer subscribed', function () { pm.response.to.have.status(204); });"]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/vnd.kafka.v2+json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"topics\": [\"{{topic}}\"]\n}"},
+        "url": "{{kafkaRestUrl}}/consumers/{{consumerGroup}}/instances/{{consumerInstance}}/subscription"
+      }
+    },
+    {
+      "name": "04 - Activate consumer",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/vnd.kafka.json.v2+json"}],
+        "url": "{{kafkaRestUrl}}/consumers/{{consumerGroup}}/instances/{{consumerInstance}}/records?timeout=1000&max_bytes=10000"
+      }
+    },
+    {
+      "name": "05 - Publish NEW application",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const eventId = pm.variables.replaceIn('{{$guid}}');",
+              "const requestId = 'req-new-' + pm.variables.replaceIn('{{$guid}}');",
+              "pm.variables.set('eventId', eventId);",
+              "pm.variables.set('requestId', requestId);",
+              "pm.variables.set('occurredAt', new Date().toISOString());",
+              "pm.environment.set('newRequestId', requestId);",
+              "pm.environment.set('currentStatus', 'NEW');"
+            ]
+          }
+        },
+        {"listen": "test", "script": {"exec": ["pm.test('NEW request published', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().offsets[0].error_code).to.eql(null); });"]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/vnd.kafka.json.v2+json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"records\": [{\n    \"key\": \"{{applicationId}}\",\n    \"value\": {\n      \"eventId\": \"{{eventId}}\",\n      \"eventType\": \"APPLICATION_STATUS_CHANGE_REQUESTED\",\n      \"eventVersion\": 1,\n      \"occurredAt\": \"{{occurredAt}}\",\n      \"requestId\": \"{{requestId}}\",\n      \"correlationId\": \"{{requestId}}\",\n      \"producer\": \"eapo-cab\",\n      \"applicationId\": \"{{applicationId}}\",\n      \"currentStatus\": \"NEW\"\n    }\n  }]\n}"},
+        "url": "{{kafkaRestUrl}}/topics/{{topic}}"
+      }
+    },
+    {
+      "name": "06 - Verify NEW to PROCESSING",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const records = pm.response.json();",
+              "const requestId = pm.environment.get('newRequestId');",
+              "const result = records.find(r => r.value && r.value.eventType === 'APPLICATION_STATUS_CHANGE_RESULT' && r.value.requestId === requestId);",
+              "pm.test('RESULT for NEW received', function () { pm.expect(result, 'Kafka RESULT').to.exist; });",
+              "if (result) {",
+              "  pm.test('Status changed NEW -> PROCESSING', function () {",
+              "    pm.expect(result.value.result).to.eql('SUCCESS');",
+              "    pm.expect(result.value.previousStatus).to.eql('NEW');",
+              "    pm.expect(result.value.status).to.eql('PROCESSING');",
+              "  });",
+              "  pm.environment.set('currentStatus', result.value.status);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/vnd.kafka.json.v2+json"}],
+        "url": "{{kafkaRestUrl}}/consumers/{{consumerGroup}}/instances/{{consumerInstance}}/records?timeout=10000&max_bytes=100000"
+      }
+    },
+    {
+      "name": "07 - Publish PROCESSING application",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const eventId = pm.variables.replaceIn('{{$guid}}');",
+              "const requestId = 'req-processing-' + pm.variables.replaceIn('{{$guid}}');",
+              "pm.variables.set('eventId', eventId);",
+              "pm.variables.set('requestId', requestId);",
+              "pm.variables.set('occurredAt', new Date().toISOString());",
+              "pm.environment.set('processingRequestId', requestId);"
+            ]
+          }
+        },
+        {"listen": "test", "script": {"exec": ["pm.test('PROCESSING request published', function () { pm.response.to.have.status(200); });"]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/vnd.kafka.json.v2+json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"records\": [{\n    \"key\": \"{{applicationId}}\",\n    \"value\": {\n      \"eventId\": \"{{eventId}}\",\n      \"eventType\": \"APPLICATION_STATUS_CHANGE_REQUESTED\",\n      \"eventVersion\": 1,\n      \"occurredAt\": \"{{occurredAt}}\",\n      \"requestId\": \"{{requestId}}\",\n      \"correlationId\": \"{{requestId}}\",\n      \"producer\": \"eapo-cab\",\n      \"applicationId\": \"{{applicationId}}\",\n      \"currentStatus\": \"PROCESSING\"\n    }\n  }]\n}"},
+        "url": "{{kafkaRestUrl}}/topics/{{topic}}"
+      }
+    },
+    {
+      "name": "08 - Verify PROCESSING to COMPLETED",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const records = pm.response.json();",
+              "const requestId = pm.environment.get('processingRequestId');",
+              "const result = records.find(r => r.value && r.value.eventType === 'APPLICATION_STATUS_CHANGE_RESULT' && r.value.requestId === requestId);",
+              "pm.test('RESULT for PROCESSING received', function () { pm.expect(result, 'Kafka RESULT').to.exist; });",
+              "if (result) {",
+              "  pm.test('Status changed PROCESSING -> COMPLETED', function () {",
+              "    pm.expect(result.value.result).to.eql('SUCCESS');",
+              "    pm.expect(result.value.previousStatus).to.eql('PROCESSING');",
+              "    pm.expect(result.value.status).to.eql('COMPLETED');",
+              "  });",
+              "  pm.environment.set('currentStatus', result.value.status);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/vnd.kafka.json.v2+json"}],
+        "url": "{{kafkaRestUrl}}/consumers/{{consumerGroup}}/instances/{{consumerInstance}}/records?timeout=10000&max_bytes=100000"
+      }
+    },
+    {
+      "name": "09 - Delete temporary consumer",
+      "event": [{"listen": "test", "script": {"exec": ["pm.test('Consumer deleted', function () { pm.response.to.have.status(204); });"]}}],
+      "request": {
+        "method": "DELETE",
+        "url": "{{kafkaRestUrl}}/consumers/{{consumerGroup}}/instances/{{consumerInstance}}"
+      }
+    }
+  ]
+}

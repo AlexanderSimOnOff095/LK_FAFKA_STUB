@@ -38,6 +38,7 @@ Invoke-RestMethod http://localhost:8090/api/v1/admin/health
 
 - `postman/STUB_Admin.postman_collection.json` — настройка STUB;
 - `postman/EAPO_Cab_Kafka_Status.postman_collection.json` — отправка REQUEST и чтение сообщений через Kafka REST Proxy.
+- `postman/EAPO_Cab_Application_Status_E2E.postman_collection.json` — полный автоматизированный сценарий одной заявки `NEW -> PROCESSING -> COMPLETED`.
 
 Postman не использует бинарный Kafka-протокол напрямую. Для тестов коллекция обращается к REST Proxy на порту `8082`; Kafka UI на `8081` используется для просмотра топика и сообщений.
 
