@@ -9,6 +9,7 @@
 - `eapo-cab-status-result-v1` — consumer group Личного кабинета;
 - PostgreSQL БД `lk_fafka_stub_kafka`;
 - административный REST API на `http://localhost:8090`;
+- Swagger UI на `http://localhost:8090/swagger` и OpenAPI JSON на `http://localhost:8090/openapi.json`;
 - Kafka UI на `http://localhost:8081`;
 - Kafka REST Proxy на `http://localhost:8082` для Postman;
 - две Postman-коллекции в `postman/`.
@@ -51,6 +52,8 @@ Postman не использует бинарный Kafka-протокол нап
 - Password: значение `POSTGRES_PASSWORD` из `.env`
 
 DDL: `db/init/001_schema.sql`. Все имена баз данных проекта имеют суффикс `_kafka`.
+
+Импортируемая конфигурация DBeaver: `dbeaver/STUB_Kafka.dbeaver-data-sources.json`. Пароль в Git не сохраняется.
 
 Порты `5433` и `8090` выбраны намеренно, чтобы не конфликтовать с ранее запущенными PostgreSQL и REST STUB на `5432`/`8080`.
 

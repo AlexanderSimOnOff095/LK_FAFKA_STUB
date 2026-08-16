@@ -1,6 +1,7 @@
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
+from .openapi import OPENAPI, SWAGGER_HTML
 
 
 def handler(repository, worker):
@@ -10,8 +11,16 @@ def handler(repository, worker):
         def send(self,status=200,data=None):
             payload=b"" if data is None else json.dumps(data,ensure_ascii=False).encode()
             self.send_response(status); self.send_header("Content-Type","application/json; charset=utf-8"); self.send_header("Content-Length",str(len(payload))); self.end_headers(); self.wfile.write(payload)
+        def send_html(self,html):
+            payload=html.encode("utf-8"); self.send_response(200); self.send_header("Content-Type","text/html; charset=utf-8"); self.send_header("Content-Length",str(len(payload))); self.end_headers(); self.wfile.write(payload)
         def do_GET(self):
-            if self.path == "/api/v1/admin/health":
+            if self.path == "/":
+                self.send_response(302); self.send_header("Location","/swagger"); self.end_headers()
+            elif self.path in ("/swagger", "/swagger/"):
+                self.send_html(SWAGGER_HTML)
+            elif self.path == "/openapi.json":
+                self.send(data=OPENAPI)
+            elif self.path == "/api/v1/admin/health":
                 try: repository.settings(); self.send(data={"status":"UP","kafkaConnected":True,"configurationLoaded":True})
                 except Exception as e: self.send(503,{"status":"DOWN","message":str(e)})
             elif self.path == "/api/v1/admin/settings":

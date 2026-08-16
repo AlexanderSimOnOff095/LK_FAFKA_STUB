@@ -1,0 +1,38 @@
+{
+  "folders": {},
+  "connections": {
+    "postgres-jdbc-lk-fafka-stub-kafka": {
+      "provider": "postgresql",
+      "driver": "postgres-jdbc",
+      "name": "LK_FAFKA_STUB Kafka",
+      "save-password": false,
+      "configuration": {
+        "host": "localhost",
+        "port": "5433",
+        "database": "lk_fafka_stub_kafka",
+        "url": "jdbc:postgresql://localhost:5433/lk_fafka_stub_kafka",
+        "type": "dev",
+        "auth-model": "native",
+        "user": "stub_kafka",
+        "properties": {
+          "show-non-default-db": "false"
+        },
+        "provider-properties": {
+          "@dbeaver-show-non-default-db@": "false",
+          "@dbeaver-show-template-db@": "false"
+        }
+      }
+    }
+  },
+  "connection-types": {
+    "dev": {
+      "name": "Development",
+      "color": "255,255,255",
+      "description": "Development database",
+      "auto-commit": true,
+      "confirm-execute": false,
+      "confirm-data-change": false,
+      "auto-close-transactions": false
+    }
+  }
+}
