@@ -8,7 +8,7 @@
 - `stub-status-change-v1` — consumer group сервиса;
 - `eapo-cab-status-result-v1` — consumer group Личного кабинета;
 - PostgreSQL БД `lk_fafka_stub_kafka`;
-- административный REST API на `http://localhost:8080`;
+- административный REST API на `http://localhost:8090`;
 - Kafka UI на `http://localhost:8081`;
 - Kafka REST Proxy на `http://localhost:8082` для Postman;
 - две Postman-коллекции в `postman/`.
@@ -28,7 +28,7 @@ docker compose up -d --build
 ```powershell
 docker compose ps
 docker compose exec kafka kafka-topics --bootstrap-server kafka:29092 --describe --topic applications.status
-Invoke-RestMethod http://localhost:8080/api/v1/admin/health
+Invoke-RestMethod http://localhost:8090/api/v1/admin/health
 ```
 
 ## Postman
@@ -45,12 +45,14 @@ Postman не использует бинарный Kafka-протокол нап
 Создать PostgreSQL connection:
 
 - Host: `localhost`
-- Port: `5432`
+- Port: `5433`
 - Database: `lk_fafka_stub_kafka`
 - User: `stub_kafka`
 - Password: значение `POSTGRES_PASSWORD` из `.env`
 
 DDL: `db/init/001_schema.sql`. Все имена баз данных проекта имеют суффикс `_kafka`.
+
+Порты `5433` и `8090` выбраны намеренно, чтобы не конфликтовать с ранее запущенными PostgreSQL и REST STUB на `5432`/`8080`.
 
 ## Тесты
 

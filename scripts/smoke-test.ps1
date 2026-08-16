@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$health = Invoke-RestMethod 'http://localhost:8080/api/v1/admin/health'
+$health = Invoke-RestMethod 'http://localhost:8090/api/v1/admin/health'
 if ($health.status -ne 'UP') { throw 'STUB health is not UP' }
 $topics = Invoke-RestMethod 'http://localhost:8082/topics'
 if ($topics -notcontains 'applications.status') { throw 'Kafka topic applications.status is missing' }
