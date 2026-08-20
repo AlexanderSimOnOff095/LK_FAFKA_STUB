@@ -3,7 +3,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 $log = Join-Path $repo 'docker-start.log'
 Set-Location -LiteralPath $repo
 try {
-    docker compose up -d --build *>&1 | Out-File -LiteralPath $log -Encoding utf8
+    docker compose -f compose.json up -d --build *>&1 | Out-File -LiteralPath $log -Encoding utf8
     "EXIT_CODE=0" | Add-Content -LiteralPath $log
 }
 catch {
