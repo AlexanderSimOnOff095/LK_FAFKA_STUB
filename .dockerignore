@@ -1,6 +1,6 @@
-.env
 target/
+.git/
 .idea/
 .vscode/
-.DS_Store
+.env
 docker-start.log

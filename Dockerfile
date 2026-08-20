@@ -1,7 +1,11 @@
-FROM python:3.12-slim
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+WORKDIR /workspace
+COPY pom.xml .
+COPY src ./src
+RUN mvn -B package
+
+FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app ./app
+COPY --from=build /workspace/target/lk-fafka-stub.jar /app/lk-fafka-stub.jar
 EXPOSE 8080
-CMD ["python", "-m", "app.main"]
+ENTRYPOINT ["java", "-jar", "/app/lk-fafka-stub.jar"]

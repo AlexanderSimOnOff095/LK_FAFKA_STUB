@@ -1,6 +1,6 @@
 # LK_FAFKA_STUB
 
-Проект `STUB` для тестирования асинхронной смены статусов заявок EAPO-Cab через один Kafka-топик.
+Java 21 проект `STUB` для тестирования асинхронной смены статусов заявок EAPO-Cab через один Kafka-топик.
 
 ## Состав
 
@@ -12,7 +12,7 @@
 - Swagger UI на `http://localhost:8090/swagger` и OpenAPI JSON на `http://localhost:8090/openapi.json`;
 - Kafka UI на `http://localhost:8081`;
 - Kafka REST Proxy на `http://localhost:8082` для Postman;
-- две Postman-коллекции в `postman/`.
+- три Postman-коллекции в `postman/`.
 
 ## Запуск
 
@@ -21,14 +21,14 @@
 3. Выполнить:
 
 ```powershell
-docker compose up -d --build
+docker compose -f compose.json up -d --build
 ```
 
 Топик и БД создаются автоматически. Проверка:
 
 ```powershell
-docker compose ps
-docker compose exec kafka kafka-topics --bootstrap-server kafka:29092 --describe --topic applications.status
+docker compose -f compose.json ps
+docker compose -f compose.json exec kafka kafka-topics --bootstrap-server kafka:29092 --describe --topic applications.status
 Invoke-RestMethod http://localhost:8090/api/v1/admin/health
 ```
 
@@ -60,10 +60,17 @@ DDL: `db/init/001_schema.sql`. Все имена баз данных проек�
 
 ## Тесты
 
-Автономные unit-тесты не требуют Kafka/PostgreSQL:
+Для локальной сборки нужны JDK 21 и Maven 3.9+. Автономные unit-тесты не требуют Kafka/PostgreSQL:
 
 ```powershell
-python -m unittest discover -s tests -v
+mvn test
+```
+
+Сборка исполняемого JAR:
+
+```powershell
+mvn package
+java -jar target/lk-fafka-stub.jar
 ```
 
 Полная проверка после запуска Docker:
@@ -75,3 +82,10 @@ powershell -ExecutionPolicy Bypass -File scripts/smoke-test.ps1
 ## Контракт
 
 STUB читает только `APPLICATION_STATUS_CHANGE_REQUESTED` от `producer=eapo-cab`. Результат публикуется как `APPLICATION_STATUS_CHANGE_RESULT` от `producer=status-stub` с тем же Kafka key (`applicationId`). Offset подтверждается после публикации результата; повторный `requestId` обрабатывается идемпотентно.
+
+## Структура Java-проекта
+
+- `src/main/java/ru/eapo/stub` — Java-код сервиса;
+- `src/main/resources/openapi.json` — контракт административного API;
+- `compose.json` — Docker Compose в JSON-формате;
+- `src/test/java` — JUnit-тесты доменной логики.
